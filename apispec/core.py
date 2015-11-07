@@ -19,16 +19,21 @@ SWAGGER_VERSION = '2.0'
 
 def clean_operations(operations):
     """Ensure that all parameters with "in" equal to "path" are also required
-    as required by the Swagger specification.
+    as required by the Swagger specification, as well as normalizing any
+    references to global parameters.
 
     See https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md#parameterObject.
 
     :param dict operations: Dict mapping status codes to operations
     """
+    get_ref = lambda x: x if isinstance(x, dict) else {'$ref': '#/parameters/'+x}
+
     for operation in (operations or {}).values():
-        for parameter in operation.get('parameters', []):
-            if parameter['in'] == 'path':
+        parameters = operation.get('parameters', [])
+        for parameter in parameters:
+            if isinstance(parameter, dict) and parameter['in'] == 'path':
                 parameter['required'] = True
+        operation['parameters'] = [get_ref(p) for p in parameters]
 
 
 class Path(dict):
@@ -90,6 +95,7 @@ class APISpec(object):
         self.options = options
         # Metadata
         self._definitions = {}
+        self._parameters = {}
         self._paths = {}
         # Plugin and helpers
         self.plugins = {}
@@ -106,10 +112,21 @@ class APISpec(object):
             'swagger': SWAGGER_VERSION,
             'info': self.info,
             'definitions': self._definitions,
+            'parameters': self._parameters,
             'paths': self._paths,
         }
         ret.update(self.options)
         return ret
+
+    def add_parameter(self, _name, _in, **kwargs):
+        """ Add a parameter which can be referenced.
+            In this case `_name` is the canonical reference, whereas `name`
+            in kwargs is the name which is exposed to user.
+        """
+        if 'name' not in kwargs:
+            kwargs['name'] = _name
+        kwargs['in'] = _in
+        self._parameters[_name] = kwargs
 
     def add_path(self, path=None, operations=None, **kwargs):
         """Add a new path object to the spec.
