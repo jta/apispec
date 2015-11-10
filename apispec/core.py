@@ -29,11 +29,12 @@ def clean_operations(operations):
     get_ref = lambda x: x if isinstance(x, dict) else {'$ref': '#/parameters/' + x}
 
     for operation in (operations or {}).values():
-        parameters = operation.get('parameters', [])
-        for parameter in parameters:
-            if isinstance(parameter, dict) and parameter['in'] == 'path':
-                parameter['required'] = True
-        operation['parameters'] = [get_ref(p) for p in parameters]
+        if 'parameters' in operation:
+            parameters = operation.get('parameters')
+            for parameter in parameters:
+                if isinstance(parameter, dict) and parameter['in'] == 'path':
+                    parameter['required'] = True
+            operation['parameters'] = [get_ref(p) for p in parameters]
 
 
 class Path(dict):
