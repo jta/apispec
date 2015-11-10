@@ -26,7 +26,7 @@ def clean_operations(operations):
 
     :param dict operations: Dict mapping status codes to operations
     """
-    get_ref = lambda x: x if isinstance(x, dict) else {'$ref': '#/parameters/'+x}
+    get_ref = lambda x: x if isinstance(x, dict) else {'$ref': '#/parameters/' + x}
 
     for operation in (operations or {}).values():
         parameters = operation.get('parameters', [])
